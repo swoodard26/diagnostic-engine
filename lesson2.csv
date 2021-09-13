@@ -1,0 +1,6 @@
+Topic,Subtopic,Question,Eval Function,Resulting Lesson
+Counting,Count to 10,How many balls are there in total (scored and not scored)?,total,Try counting how many soccer balls there are.
+Counting,Count to 10,How many balls are in the goal?,numerator,Count how many o's are between the |       |
+Counting,Count to 10,How many balls are not in the goal?,total-numerator,Count how many o's are not between the |       |
+Structure of a fraction,,Which number goes on top of the fraction?,numerator,The top number is how many of the things are what you are looking for
+Structure of a fraction,,Which number goes on the bottom of the fraction?,total,The bottom number is how many things total there are

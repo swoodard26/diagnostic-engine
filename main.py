@@ -1,7 +1,9 @@
 import csv
 import re
+import random
+import math
 
-CSVFilename = "lesson1.csv"
+CSVFilename = "lesson2.csv"
 
 def getString(prompt):
     if prompt == None:
@@ -26,27 +28,36 @@ def showLesson(prompt):
     print(stringPrompt)
 
 
-def csvFileToDiagnostics(filename):
-    diagnostics = []
-    with open(filename) as f:
-        reader = csv.reader(f)
-        reader.__next__()
-        for i, row in enumerate(reader):
-            d = Diagnostic(row[2], row[3], row[4])
-            if i != 0:
-                diagnostics[i - 1].next = d
-            diagnostics.append(d)
-    return diagnostics
-
-
 class ProblemContext(object):
-    def __init__(self, problem, startingDiagnostic, evalFunc):
+    def __init__(self, problem, file):
         self.problem = problem
-        self.current = startingDiagnostic
-        self.evalFunc = evalFunc
+        self.evalFunc = problem.evalAnswer()
+        self.current = None
+        self.file = file
+
+        self.csvFileToDiagnostics()
+
+    def csvFileToDiagnostics(self):
+        diagnostics = []
+        with open(self.file) as f:
+            reader = csv.reader(f)
+            reader.__next__()
+            for i, row in enumerate(reader):
+                regex = self.evalToCreateRegex(row[3])
+                d = Diagnostic(row[2], regex, row[4])
+                if i != 0:
+                    diagnostics[i - 1].next = d
+                diagnostics.append(d)
+        self.current = diagnostics[0]
+
+    def evalToCreateRegex(self,stringToEval):
+        total = self.problem.total
+        numerator = self.problem.numerator
+        regexString = str(eval(stringToEval))
+        return regexString
 
     def poseProblem(self):
-        self.answer = askQuestion(self.problem)
+        self.answer = askQuestion(self.problem.generate())
         askQuestion("How did you get that?")
         if not self.evalFunc(self.answer):
             self.current = traverse(self.current)
@@ -55,15 +66,58 @@ class ProblemContext(object):
             showLesson("Pat yourself on the back!")
 
     def reaskProblem(self):
-        refinedAnswer = askQuestion(self.problem)
+        refinedAnswer = askQuestion(self.problem.generate())
         if not self.evalFunc(refinedAnswer):
             self.current = traverse(self.current.next)
         else:
             showLesson("Pat yourself on the back!")
 
     def finalAskProblem(self):
-        askQuestion(self.problem)
+        askQuestion(self.problem.generate())
         #ZPD doo dah
+
+
+class SoccerProblem(object):
+    def __init__(self, scored, total):
+        self.total = total
+        self.scored = scored
+        self.numerator = self.scored
+
+    def generateBallstring(self, ballsToPlace):
+        ballsPlaced = 0
+        ballstring = ''
+        totalSlots = ballsToPlace * 2
+        for i in range(0, totalSlots):
+            slotsLeft = totalSlots - i
+            ballsLeft = ballsToPlace - ballsPlaced
+            percentage = ballsLeft / slotsLeft
+            if random.random() < percentage:
+                ballstring += 'o'
+                ballsPlaced += 1
+            else:
+                ballstring += ' '
+
+        return ballstring
+
+    def generate(self):
+        notScored = self.generateBallstring(self.total - self.scored)
+        scored = self.generateBallstring(self.scored)
+
+        halfIndex = math.floor(len(notScored) / 2)
+
+        topString = " " * halfIndex + "_" * (len(scored) + 2)
+        bottomString = notScored[0:halfIndex] + "|" + scored + "|" + notScored[
+            halfIndex:]
+
+        question = "What fraction of the soccer balls are in the goal?\n\n" + topString + "\n" + bottomString
+
+        return question
+
+        #        __________
+        # o o oo |  o oo o| o o
+    
+    def evalAnswer(self):
+        return regexEvalFunc(str(self.numerator) + "/" + str(self.total))
 
 
 class Diagnostic(object):
@@ -88,20 +142,25 @@ def traverse(d):
 
     answer = askQuestion(d.question)
     if not d.eval(answer):
-        showLesson(d.lesson)
+        askQuestion(d.lesson)
         return d
 
     traverse(d.next)
 
 
+#What fraction of the soccer balls made it in the goal?
+
 if __name__ == "__main__":
-  
-    problem = "What fraction of the balloons are popped?\n u u O u"
-    diagnostics = csvFileToDiagnostics(CSVFilename)
-    diagonstic = diagnostics[0]
-    answerEval = "3/4"
 
-    context = ProblemContext(problem, diagonstic,
-                             regexEvalFunc(answerEval))
+    numProblems = 5
+    maxValue = 10
 
-    context.poseProblem()
+    while (numProblems > 0):
+        randomTotal = random.randint(4, maxValue)
+        randomScored = random.randint(1, randomTotal-1)
+
+        problem = SoccerProblem(randomScored, randomTotal)
+        context = ProblemContext(problem, CSVFilename)
+        context.poseProblem()
+        
+        numProblems -= 1
